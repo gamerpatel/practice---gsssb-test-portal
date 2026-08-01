@@ -63,20 +63,6 @@
       margin-left: 4px;
       font-weight: 400;
     }
-    .save-indicator {
-      font-size: 0.75rem;
-      color: #0b5e42;
-      background: #d1fae5;
-      padding: 2px 12px;
-      border-radius: 30px;
-      display: inline-block;
-      margin-left: 8px;
-      opacity: 0;
-      transition: opacity 0.3s;
-    }
-    .save-indicator.show {
-      opacity: 1;
-    }
     .status-badge {
       font-size: 0.7rem;
       padding: 2px 10px;
@@ -354,28 +340,6 @@
       color: #1e3a8a;
     }
 
-    .history-list {
-      max-height: 300px;
-      overflow-y: auto;
-    }
-    .history-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px 14px;
-      border-bottom: 1px solid #e9edf2;
-      flex-wrap: wrap;
-      gap: 6px;
-    }
-    .history-item .h-date {
-      font-size: 0.85rem;
-      color: #64748b;
-    }
-    .history-item .h-score {
-      font-weight: 600;
-      color: #1e3a8a;
-    }
-
     .loading {
       text-align: center;
       padding: 40px;
@@ -410,7 +374,6 @@
     <span class="brand-name">GSSSB X-Ray</span>
     <span class="brand-sub">· Test Portal</span>
     <span class="status-badge" id="connectionStatus">🔄 Connecting...</span>
-    <span class="save-indicator" id="saveIndicator">💾 Saved</span>
   </div>
   <div class="sub">Student · attempt chapter-wise tests</div>
 
@@ -425,7 +388,6 @@
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:8px;">
       <h3 style="font-weight:500;">🧑‍🏫 Admin Panel · GSSSB X-Ray</h3>
       <div style="display:flex; gap:8px; flex-wrap:wrap;">
-        <button class="btn btn-outline btn-sm" id="clearHistoryBtn">🗑️ Clear History</button>
         <button class="btn btn-outline btn-sm" id="refreshDataBtn">🔄 Refresh</button>
         <button class="btn btn-outline btn-sm" id="closeAdminBtn">✕ Close</button>
       </div>
@@ -517,22 +479,19 @@
   <div class="screenshot-block" id="screenshotBlock"></div>
 
   <div class="footer-brand">
-    <strong>GSSSB X-Ray</strong> · Test Portal · v2.0 · Backend Connected
+    <strong>GSSSB X-Ray</strong> · Test Portal · v2.0
   </div>
 </div>
 
 <script>
   (function() {
     // ==================== CONFIGURATION ====================
-    // CHANGE THIS TO YOUR BACKEND URL AFTER DEPLOYMENT
     const API_URL = 'https://gsssb-backend-r811.onrender.com/api';
-    // For production: const API_URL = 'https://gsssb-backend.onrender.com/api';
 
     // ==================== DATA ====================
     let chapters = [];
     let selectedChapterId = null;
     let adminLoggedIn = false;
-    let studentHistory = [];
 
     // Student session
     let activeChapter = null;
@@ -553,7 +512,6 @@
     const adminToggle = $('adminToggleBtn');
     const loginModal = $('loginModal');
     const screenshotBlock = $('screenshotBlock');
-    const saveIndicator = $('saveIndicator');
     const connectionStatus = $('connectionStatus');
 
     // ==================== API FUNCTIONS ====================
@@ -607,7 +565,6 @@
           method: 'POST',
           body: JSON.stringify(chapterData)
         });
-        showSaveIndicator();
         return result;
       } catch (error) {
         alert('Failed to save chapter: ' + error.message);
@@ -621,7 +578,6 @@
           method: 'PUT',
           body: JSON.stringify(chapterData)
         });
-        showSaveIndicator();
         return result;
       } catch (error) {
         alert('Failed to update chapter: ' + error.message);
@@ -632,36 +588,10 @@
     async function deleteChapter(id) {
       try {
         await apiCall(`/chapters/${id}`, { method: 'DELETE' });
-        showSaveIndicator();
         return true;
       } catch (error) {
         alert('Failed to delete chapter: ' + error.message);
         return false;
-      }
-    }
-
-    async function saveResult(resultData) {
-      try {
-        await apiCall('/results', {
-          method: 'POST',
-          body: JSON.stringify(resultData)
-        });
-        showSaveIndicator();
-        return true;
-      } catch (error) {
-        console.error('Failed to save result:', error);
-        return false;
-      }
-    }
-
-    async function loadHistory() {
-      try {
-        const results = await apiCall('/results');
-        studentHistory = results || [];
-        renderStudentChapters();
-      } catch (error) {
-        console.error('Failed to load history:', error);
-        studentHistory = [];
       }
     }
 
@@ -675,11 +605,6 @@
       } catch (error) {
         return { success: false, error: error.message };
       }
-    }
-
-    function showSaveIndicator() {
-      saveIndicator.classList.add('show');
-      setTimeout(() => saveIndicator.classList.remove('show'), 2000);
     }
 
     // ==================== PROTECTION ====================
@@ -828,32 +753,9 @@
     function renderStudentChapters() {
       if (!studentArea) return;
       if (examActive) return;
-      
-      let historyHtml = '';
-      if (studentHistory && studentHistory.length > 0) {
-        historyHtml = `<div class="card" style="margin-top:16px;">
-          <h4 style="margin-bottom:8px;">📊 Your Test History</h4>
-          <div class="history-list">`;
-        const recent = [...studentHistory].reverse().slice(0, 10);
-        recent.forEach(h => {
-          const date = new Date(h.date).toLocaleDateString('en-IN', { 
-            day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
-          });
-          historyHtml += `<div class="history-item">
-            <span><strong>${h.chapterName}</strong> <span class="h-date">${date}</span></span>
-            <span class="h-score">${(h.score || 0).toFixed(2)} / ${h.total || 0} (${h.total ? Math.round((h.score/h.total)*100) : 0}%)</span>
-          </div>`;
-        });
-        if (studentHistory.length > 10) {
-          historyHtml += `<div style="padding:8px; text-align:center; color:#94a3b8; font-size:0.85rem;">
-            Showing last 10 of ${studentHistory.length} attempts
-          </div>`;
-        }
-        historyHtml += `</div></div>`;
-      }
 
       if (chapters.length === 0) {
-        studentArea.innerHTML = `<div style="padding:20px; color:#475569;">📘 No tests available. Teacher will add chapters.</div>` + historyHtml;
+        studentArea.innerHTML = `<div style="padding:20px; color:#475569;">📘 No tests available. Teacher will add chapters.</div>`;
         return;
       }
       
@@ -866,7 +768,6 @@
         </div>`;
       });
       html += `</div>`;
-      html += historyHtml;
       studentArea.innerHTML = html;
       
       studentArea.querySelectorAll('.chapter-card').forEach(card => {
@@ -984,7 +885,7 @@
       }, 1000);
     }
 
-    async function finishExam() {
+    function finishExam() {
       if (!examActive || !activeChapter) return;
       clearInterval(timerInterval);
       examActive = false;
@@ -1004,22 +905,7 @@
       const totalMarks = correct;
       const finalScore = Math.max(0, totalMarks - negativeMarks);
 
-      // Save to backend
-      await saveResult({
-        chapterName: activeChapter.name,
-        studentName: 'Student',
-        correct: correct,
-        wrong: wrong,
-        unattempted: unattempted,
-        score: finalScore,
-        total: total,
-        negativeMarks: negativeMarks,
-        answers: studentAnswers
-      });
-
-      // Reload history
-      await loadHistory();
-
+      // NO HISTORY SAVING - Just show results
       let html = `<h3>📊 Results · ${activeChapter.name}</h3>
         <div class="result-box">
           <div>
@@ -1125,7 +1011,6 @@
           const ch2 = chapters.find(c => c.id === selectedChapterId);
           if (ch2 && ch2.questions) {
             ch2.questions = ch2.questions.filter(q => q.id !== qid);
-            // Save to backend
             const updated = await updateChapter(ch2.id, {
               name: ch2.name,
               durationMin: ch2.durationMin,
@@ -1307,23 +1192,12 @@
       alert(`✅ ${count} demo chapters loaded!`);
     }
 
-    async function clearHistory() {
-      if (confirm('Delete all student history?')) {
-        // This would need a DELETE endpoint
-        // For now, just reload
-        await loadHistory();
-        renderStudentChapters();
-        alert('History refreshed!');
-      }
-    }
-
     // ==================== INIT ====================
     async function init() {
       enableProtection();
 
       // Load data
       await loadChapters();
-      await loadHistory();
 
       // Admin toggle
       adminToggle.addEventListener('click', function() {
@@ -1346,10 +1220,8 @@
       $('closeAdminBtn').addEventListener('click', function() {
         if (adminLoggedIn) logoutAdmin();
       });
-      $('clearHistoryBtn').addEventListener('click', clearHistory);
       $('refreshDataBtn').addEventListener('click', async function() {
         await loadChapters();
-        await loadHistory();
         alert('Data refreshed!');
       });
 
