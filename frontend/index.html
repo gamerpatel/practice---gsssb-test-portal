@@ -212,27 +212,40 @@
     .opt-item {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
       cursor: pointer;
-      padding: 8px 14px;
+      padding: 10px 16px;
       border-radius: 12px;
       transition: 0.15s;
-      border: 1px solid transparent;
+      border: 2px solid #e2e8f0;
+      background: white;
+      flex: 1 0 200px;
     }
     .opt-item:hover {
-      background: #f1f5f9;
-      border-color: #d1d9e6;
+      background: #f8faff;
+      border-color: #b9c8f0;
     }
     .opt-item.selected {
       background: #dbeafe;
       border-color: #3b5fbf;
+      box-shadow: 0 0 0 2px rgba(59, 95, 191, 0.2);
     }
     .opt-item input[type="radio"] {
-      width: 16px;
-      height: 16px;
+      width: 18px;
+      height: 18px;
       accent-color: #1e3a8a;
       cursor: pointer;
+      flex-shrink: 0;
     }
+    .opt-item .option-letter {
+      font-weight: 600;
+      color: #1e3a8a;
+      min-width: 24px;
+    }
+    .opt-item .option-text {
+      color: #1e293b;
+    }
+
     .test-meta {
       display: flex;
       flex-wrap: wrap;
@@ -363,16 +376,6 @@
       padding: 40px;
       color: #64748b;
     }
-    .loading::after {
-      content: '...';
-      animation: dots 1.5s steps(4, end) infinite;
-    }
-    @keyframes dots {
-      0%, 20% { content: ''; }
-      40% { content: '.'; }
-      60% { content: '..'; }
-      80%, 100% { content: '...'; }
-    }
 
     .answered-badge {
       display: inline-block;
@@ -429,7 +432,7 @@
       .admin-toggle { top: 12px; right: 14px; padding: 6px 14px; font-size: 0.8rem; }
       .brand-name { font-size: 1.2rem; }
       .brand-icon { font-size: 1.5rem; }
-      .opt-item { padding: 6px 10px; }
+      .opt-item { flex: 1 0 100%; }
     }
   </style>
 </head>
@@ -447,7 +450,7 @@
 
   <div id="studentPanel">
     <div id="studentArea">
-      <div class="loading">Loading tests</div>
+      <div class="loading">Loading tests...</div>
     </div>
   </div>
 
@@ -885,6 +888,7 @@
     // ==================== FIXED: ANSWER SELECTION ====================
     function selectAnswer(qId, value) {
       studentAnswers[qId] = value;
+      // Re-render to update UI
       renderExam();
     }
 
@@ -915,15 +919,16 @@
         </div>
         <div class="options-grid">`;
       
-      // FIXED: Using onclick instead of onchange
       q.options.forEach((opt, idx) => {
         const val = String.fromCharCode(65+idx);
-        const checked = studentAnswers[q.id] === val;
-        const selectedClass = checked ? 'selected' : '';
+        const isSelected = studentAnswers[q.id] === val;
+        const selectedClass = isSelected ? 'selected' : '';
+        
         html += `
           <div class="opt-item ${selectedClass}" onclick="window.selectAnswer('${q.id}', '${val}')">
-            <input type="radio" name="q_${q.id}" value="${val}" ${checked ? 'checked' : ''} />
-            ${val}. ${opt}
+            <input type="radio" name="q_${q.id}" value="${val}" ${isSelected ? 'checked' : ''} />
+            <span class="option-letter">${val}.</span>
+            <span class="option-text">${opt}</span>
           </div>
         `;
       });
@@ -940,7 +945,7 @@
       }
       
       if (currentQIndex === total - 1) {
-        html += `<button class="btn btn-primary" id="submitExamBtn" style="background:#b91c1c; color:white;">✅ Submit Test</button>`;
+        html += `<button class="btn btn-primary" id="submitExamBtn" style="background:#b91c1c; color:white; font-weight:600;">✅ Submit Test</button>`;
       }
       
       html += `<button class="btn btn-outline" id="quitExamBtn">✖ Quit</button>`;
@@ -963,21 +968,21 @@
       studentArea.innerHTML = html;
 
       // Event listeners for buttons
-      $('prevQBtn')?.addEventListener('click', () => { 
+      document.getElementById('prevQBtn')?.addEventListener('click', () => { 
         if (currentQIndex > 0) { 
           currentQIndex--; 
           renderExam(); 
         } 
       });
       
-      $('nextQBtn')?.addEventListener('click', () => { 
+      document.getElementById('nextQBtn')?.addEventListener('click', () => { 
         if (currentQIndex < total - 1) { 
           currentQIndex++; 
           renderExam(); 
         } 
       });
       
-      $('submitExamBtn')?.addEventListener('click', function() {
+      document.getElementById('submitExamBtn')?.addEventListener('click', function() {
         let unanswered = [];
         qs.forEach((q, idx) => {
           if (!studentAnswers[q.id] || studentAnswers[q.id] === null) {
@@ -993,7 +998,7 @@
         finishExam();
       });
       
-      $('quitExamBtn')?.addEventListener('click', function() {
+      document.getElementById('quitExamBtn')?.addEventListener('click', function() {
         if (confirm('Quit exam? Your progress will be lost.')) {
           clearInterval(timerInterval);
           examActive = false;
@@ -1099,8 +1104,8 @@
         <div id="reviewDetail" style="display:none; margin-top:12px;"></div>`;
       studentArea.innerHTML = html;
 
-      $('reviewAnswersBtn')?.addEventListener('click', function() {
-        const detail = $('reviewDetail');
+      document.getElementById('reviewAnswersBtn')?.addEventListener('click', function() {
+        const detail = document.getElementById('reviewDetail');
         if (!detail) return;
         if (detail.style.display === 'block') { detail.style.display = 'none'; return; }
         let rHtml = '';
@@ -1130,7 +1135,7 @@
         detail.style.display = 'block';
       });
 
-      $('backToChaptersBtn')?.addEventListener('click', function() {
+      document.getElementById('backToChaptersBtn')?.addEventListener('click', function() {
         activeChapter = null;
         studentAnswers = {};
         renderStudentChapters();
@@ -1150,7 +1155,7 @@
       if (!ch) return;
       selectedChapterId = chapterId;
       questionEditor.style.display = 'block';
-      $('editChapterName').textContent = ch.name;
+      document.getElementById('editChapterName').textContent = ch.name;
       renderQuestionsForChapter(ch);
       adminPanel.classList.add('active');
     }
@@ -1199,15 +1204,15 @@
 
     function showLoginModal() {
       loginModal.classList.add('active');
-      $('loginError').textContent = '';
-      $('loginUser').value = '';
-      $('loginPass').value = '';
-      $('loginUser').focus();
+      document.getElementById('loginError').textContent = '';
+      document.getElementById('loginUser').value = '';
+      document.getElementById('loginPass').value = '';
+      document.getElementById('loginUser').focus();
     }
 
     async function handleLogin() {
-      const user = $('loginUser').value.trim();
-      const pass = $('loginPass').value.trim();
+      const user = document.getElementById('loginUser').value.trim();
+      const pass = document.getElementById('loginPass').value.trim();
       const result = await adminLogin(user, pass);
       if (result && result.success) {
         adminLoggedIn = true;
@@ -1216,9 +1221,9 @@
         adminToggle.classList.add('logged-in');
         adminPanel.classList.add('active');
         renderChapterList();
-        $('loginError').textContent = '';
+        document.getElementById('loginError').textContent = '';
       } else {
-        $('loginError').textContent = '❌ Invalid credentials';
+        document.getElementById('loginError').textContent = '❌ Invalid credentials';
       }
     }
 
@@ -1233,9 +1238,9 @@
 
     async function addChapter() {
       if (!adminLoggedIn) { alert('Login as admin first.'); return; }
-      const name = $('chapterNameInput').value.trim();
+      const name = document.getElementById('chapterNameInput').value.trim();
       if (!name) { alert('Enter chapter name.'); return; }
-      const dur = parseInt($('chapterDuration').value) || 10;
+      const dur = parseInt(document.getElementById('chapterDuration').value) || 10;
       
       const chapterData = { name, durationMin: dur, questions: [] };
       const saved = await saveChapter(chapterData);
@@ -1243,8 +1248,8 @@
         chapters.push(saved);
         renderChapterList();
         renderStudentChapters();
-        $('chapterNameInput').value = '';
-        $('chapterDuration').value = '10';
+        document.getElementById('chapterNameInput').value = '';
+        document.getElementById('chapterDuration').value = '10';
       }
     }
 
@@ -1253,15 +1258,15 @@
       if (selectedChapterId === null) { alert('Open a chapter first.'); return; }
       const ch = chapters.find(c => c.id === selectedChapterId);
       if (!ch) return;
-      const text = $('qText').value.trim();
+      const text = document.getElementById('qText').value.trim();
       if (!text) { alert('Enter question text.'); return; }
       const opts = [
-        $('optA').value.trim() || 'A',
-        $('optB').value.trim() || 'B',
-        $('optC').value.trim() || 'C',
-        $('optD').value.trim() || 'D'
+        document.getElementById('optA').value.trim() || 'A',
+        document.getElementById('optB').value.trim() || 'B',
+        document.getElementById('optC').value.trim() || 'C',
+        document.getElementById('optD').value.trim() || 'D'
       ];
-      const correct = $('correctOpt').value;
+      const correct = document.getElementById('correctOpt').value;
       
       if (!ch.questions) ch.questions = [];
       const newQ = { 
@@ -1281,8 +1286,11 @@
         const index = chapters.findIndex(c => c.id === ch.id);
         if (index !== -1) chapters[index] = updated;
         renderQuestionsForChapter(ch);
-        $('qText').value = '';
-        $('optA').value = ''; $('optB').value = ''; $('optC').value = ''; $('optD').value = '';
+        document.getElementById('qText').value = '';
+        document.getElementById('optA').value = '';
+        document.getElementById('optB').value = '';
+        document.getElementById('optC').value = '';
+        document.getElementById('optD').value = '';
       }
     }
 
@@ -1372,41 +1380,41 @@
         }
       });
 
-      $('loginBtn').addEventListener('click', handleLogin);
-      $('loginUser').addEventListener('keydown', (e) => { if (e.key === 'Enter') handleLogin(); });
-      $('loginPass').addEventListener('keydown', (e) => { if (e.key === 'Enter') handleLogin(); });
+      document.getElementById('loginBtn').addEventListener('click', handleLogin);
+      document.getElementById('loginUser').addEventListener('keydown', (e) => { if (e.key === 'Enter') handleLogin(); });
+      document.getElementById('loginPass').addEventListener('keydown', (e) => { if (e.key === 'Enter') handleLogin(); });
       loginModal.addEventListener('click', function(e) {
         if (e.target === this) this.classList.remove('active');
       });
 
-      $('closeAdminBtn').addEventListener('click', function() {
+      document.getElementById('closeAdminBtn').addEventListener('click', function() {
         if (adminLoggedIn) logoutAdmin();
       });
-      $('refreshDataBtn').addEventListener('click', async function() {
+      document.getElementById('refreshDataBtn').addEventListener('click', async function() {
         await loadChapters();
         alert('Data refreshed!');
       });
 
-      $('addChapterBtn').addEventListener('click', addChapter);
-      $('chapterNameInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') addChapter(); });
+      document.getElementById('addChapterBtn').addEventListener('click', addChapter);
+      document.getElementById('chapterNameInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') addChapter(); });
 
-      $('addQuestionBtn').addEventListener('click', addQuestionToChapter);
-      $('clearChapterQsBtn').addEventListener('click', clearChapterQuestions);
-      $('saveChapterBtn').addEventListener('click', saveChapterHandler);
-      $('closeEditorBtn').addEventListener('click', closeEditor);
+      document.getElementById('addQuestionBtn').addEventListener('click', addQuestionToChapter);
+      document.getElementById('clearChapterQsBtn').addEventListener('click', clearChapterQuestions);
+      document.getElementById('saveChapterBtn').addEventListener('click', saveChapterHandler);
+      document.getElementById('closeEditorBtn').addEventListener('click', closeEditor);
 
-      $('loadDemoChaptersBtn').addEventListener('click', loadDemoChapters);
+      document.getElementById('loadDemoChaptersBtn').addEventListener('click', loadDemoChapters);
 
-      $('popupStartBtn').addEventListener('click', function() {
-        const popup = $('startExamPopup');
+      document.getElementById('popupStartBtn').addEventListener('click', function() {
+        const popup = document.getElementById('startExamPopup');
         const chid = parseInt(popup.dataset.chid);
         popup.classList.remove('active');
         startExam(chid);
       });
-      $('popupCancelBtn').addEventListener('click', function() {
-        $('startExamPopup').classList.remove('active');
+      document.getElementById('popupCancelBtn').addEventListener('click', function() {
+        document.getElementById('startExamPopup').classList.remove('active');
       });
-      $('startExamPopup').addEventListener('click', function(e) {
+      document.getElementById('startExamPopup').addEventListener('click', function(e) {
         if (e.target === this) this.classList.remove('active');
       });
 
