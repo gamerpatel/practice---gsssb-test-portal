@@ -44,7 +44,6 @@
     .q-block .q-text { font-size: 1.1rem; font-weight: 500; margin-bottom: 12px; }
     .options-grid { display: flex; flex-wrap: wrap; gap: 12px 28px; margin: 8px 0 10px; }
     
-    /* SIMPLE OPTION STYLES - JUST RADIO BUTTONS */
     .opt-item { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 12px; border-radius: 8px; }
     .opt-item:hover { background: #f1f5f9; }
     .opt-item input[type="radio"] { width: 18px; height: 18px; accent-color: #1e3a8a; cursor: pointer; }
@@ -201,8 +200,8 @@
 </div>
 
 <script>
-  // ==================== CONFIG ====================
-  const API_URL = 'https://gsssb-backend-r811.onrender.com/api';
+  // ==================== CORRECT BACKEND URL ====================
+  const API_URL = 'https://gsssb-backend-r811.onrender.com';
 
   // ==================== DATA ====================
   let chapters = [];
@@ -219,18 +218,25 @@
   const $ = id => document.getElementById(id);
   
   async function apiCall(endpoint, options = {}) {
-    const res = await fetch(`${API_URL}${endpoint}`, {
-      headers: { 'Content-Type': 'application/json' },
-      ...options
-    });
-    if (!res.ok) throw new Error(await res.text());
-    return res.json();
+    try {
+      const res = await fetch(`${API_URL}${endpoint}`, {
+        headers: { 'Content-Type': 'application/json' },
+        ...options
+      });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    } catch (e) {
+      console.error('API Error:', e);
+      throw e;
+    }
   }
 
   // ==================== LOAD DATA ====================
   async function loadChapters() {
     try {
-      chapters = await apiCall('/chapters');
+      $('connectionStatus').textContent = '🔄 Loading...';
+      $('connectionStatus').style.color = '#f59e0b';
+      chapters = await apiCall('/api/chapters');
       $('connectionStatus').textContent = '✅ Connected';
       $('connectionStatus').style.color = '#0b5e42';
       renderChapterList();
@@ -264,22 +270,19 @@
     $('chapterListContainer').innerHTML = html;
     $('chapterCount').textContent = chapters.length;
 
-    // Edit buttons
     document.querySelectorAll('.edit-chapter-btn').forEach(btn => {
       btn.onclick = () => openEditor(parseInt(btn.dataset.chid));
     });
     
-    // Delete buttons
     document.querySelectorAll('.delete-chapter-btn').forEach(btn => {
       btn.onclick = async () => {
-        if (confirm('Delete?')) {
-          await apiCall(`/chapters/${btn.dataset.chid}`, { method: 'DELETE' });
+        if (confirm('Delete this chapter?')) {
+          await apiCall(`/api/chapters/${btn.dataset.chid}`, { method: 'DELETE' });
           await loadChapters();
         }
       };
     });
     
-    // Click card
     document.querySelectorAll('.chapter-card').forEach(card => {
       card.onclick = (e) => {
         if (e.target.closest('button')) return;
@@ -335,12 +338,11 @@
     currentQIndex = 0;
     examActive = true;
     remainingSeconds = ch.durationMin * 60;
-    screenshotBlock.classList.add('active');
+    $('screenshotBlock').classList.add('active');
     renderExam();
     startTimer();
   }
 
-  // ==================== SIMPLE EXAM RENDER ====================
   function renderExam() {
     const qs = activeChapter.questions;
     const q = qs[currentQIndex];
@@ -373,7 +375,6 @@
     
     html += `</div></div>`;
     
-    // Buttons
     html += `<div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:6px;">`;
     html += `<button class="btn btn-outline" id="prevBtn" ${currentQIndex===0?'disabled':''}>◀ Prev</button>`;
     if (currentQIndex < total - 1) {
@@ -385,7 +386,6 @@
     html += `<button class="btn btn-outline" id="quitBtn">✖ Quit</button>`;
     html += `</div>`;
     
-    // Progress dots
     html += `<div style="margin-top:12px; display:flex; gap:6px; flex-wrap:wrap;">`;
     for (let i = 0; i < total; i++) {
       const answered = studentAnswers[qs[i].id] !== undefined;
@@ -400,21 +400,19 @@
     
     $('studentArea').innerHTML = html;
     
-    // Events
     $('prevBtn')?.onclick = () => { if (currentQIndex > 0) { currentQIndex--; renderExam(); } };
     $('nextBtn')?.onclick = () => { if (currentQIndex < total - 1) { currentQIndex++; renderExam(); } };
     $('submitBtn')?.onclick = finishExam;
     $('quitBtn')?.onclick = () => {
-      if (confirm('Quit?')) {
+      if (confirm('Quit exam?')) {
         clearInterval(timerInterval);
         examActive = false;
-        screenshotBlock.classList.remove('active');
+        $('screenshotBlock').classList.remove('active');
         renderStudentChapters();
       }
     };
   }
 
-  // ==================== SIMPLE SELECT ANSWER ====================
   window.selectAnswer = function(qId, value) {
     studentAnswers[parseInt(qId)] = value;
     renderExam();
@@ -427,7 +425,6 @@
     }
   };
 
-  // ==================== TIMER ====================
   function startTimer() {
     if (timerInterval) clearInterval(timerInterval);
     timerInterval = setInterval(() => {
@@ -448,12 +445,11 @@
     return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
   }
 
-  // ==================== FINISH EXAM ====================
   function finishExam() {
     if (!examActive) return;
     clearInterval(timerInterval);
     examActive = false;
-    screenshotBlock.classList.remove('active');
+    $('screenshotBlock').classList.remove('active');
     
     const qs = activeChapter.questions;
     let correct = 0, wrong = 0, unattempted = 0;
@@ -539,15 +535,13 @@
     const ch = chapters.find(c => c.id === selectedChapterId);
     if (!ch) return;
     ch.questions = ch.questions.filter(q => q.id !== qid);
-    await updateChapter(ch.id, { name: ch.name, durationMin: ch.durationMin, questions: ch.questions });
+    await apiCall(`/api/chapters/${ch.id}`, { 
+      method: 'PUT', 
+      body: JSON.stringify({ name: ch.name, durationMin: ch.durationMin, questions: ch.questions }) 
+    });
     await loadChapters();
     renderQuestionsForChapter(ch);
   };
-
-  async function updateChapter(id, data) {
-    const result = await apiCall(`/chapters/${id}`, { method: 'PUT', body: JSON.stringify(data) });
-    return result;
-  }
 
   function closeEditor() {
     $('questionEditor').style.display = 'none';
@@ -559,7 +553,10 @@
     const user = $('loginUser').value.trim();
     const pass = $('loginPass').value.trim();
     try {
-      const result = await apiCall('/admin/login', { method: 'POST', body: JSON.stringify({ username: user, password: pass }) });
+      const result = await apiCall('/api/admin/login', { 
+        method: 'POST', 
+        body: JSON.stringify({ username: user, password: pass }) 
+      });
       if (result.success) {
         adminLoggedIn = true;
         $('loginModal').classList.remove('active');
@@ -593,7 +590,10 @@
     const name = $('chapterNameInput').value.trim();
     if (!name) { alert('Enter chapter name.'); return; }
     const dur = parseInt($('chapterDuration').value) || 10;
-    await apiCall('/chapters', { method: 'POST', body: JSON.stringify({ name, durationMin: dur, questions: [] }) });
+    await apiCall('/api/chapters', { 
+      method: 'POST', 
+      body: JSON.stringify({ name, durationMin: dur, questions: [] }) 
+    });
     await loadChapters();
     $('chapterNameInput').value = '';
     $('chapterDuration').value = '10';
@@ -609,7 +609,10 @@
     const correct = $('correctOpt').value;
     const newQ = { id: Date.now() + Math.random(), text, options: opts, correct };
     ch.questions.push(newQ);
-    await updateChapter(ch.id, { name: ch.name, durationMin: ch.durationMin, questions: ch.questions });
+    await apiCall(`/api/chapters/${ch.id}`, { 
+      method: 'PUT', 
+      body: JSON.stringify({ name: ch.name, durationMin: ch.durationMin, questions: ch.questions }) 
+    });
     await loadChapters();
     renderQuestionsForChapter(ch);
     $('qText').value = '';
@@ -621,7 +624,10 @@
     if (!ch || !ch.questions?.length) return;
     if (confirm('Clear all questions?')) {
       ch.questions = [];
-      await updateChapter(ch.id, { name: ch.name, durationMin: ch.durationMin, questions: ch.questions });
+      await apiCall(`/api/chapters/${ch.id}`, { 
+        method: 'PUT', 
+        body: JSON.stringify({ name: ch.name, durationMin: ch.durationMin, questions: ch.questions }) 
+      });
       await loadChapters();
       renderQuestionsForChapter(ch);
     }
@@ -630,7 +636,10 @@
   $('saveChapterBtn').onclick = async () => {
     const ch = chapters.find(c => c.id === selectedChapterId);
     if (!ch) return;
-    await updateChapter(ch.id, { name: ch.name, durationMin: ch.durationMin, questions: ch.questions });
+    await apiCall(`/api/chapters/${ch.id}`, { 
+      method: 'PUT', 
+      body: JSON.stringify({ name: ch.name, durationMin: ch.durationMin, questions: ch.questions }) 
+    });
     alert('✅ Saved!');
     await loadChapters();
     closeEditor();
@@ -651,7 +660,10 @@
     ];
     for (const d of demo) {
       const qs = d.qs.map(q => ({ id: Date.now() + Math.random(), text: q.text, options: q.opts, correct: q.correct }));
-      await apiCall('/chapters', { method: 'POST', body: JSON.stringify({ name: d.name, durationMin: d.dur, questions: qs }) });
+      await apiCall('/api/chapters', { 
+        method: 'POST', 
+        body: JSON.stringify({ name: d.name, durationMin: d.dur, questions: qs }) 
+      });
     }
     await loadChapters();
     alert('✅ Demo loaded!');
@@ -679,7 +691,6 @@
 
   // ==================== INIT ====================
   loadChapters();
-  renderStudentChapters();
 </script>
 </body>
 </html>
