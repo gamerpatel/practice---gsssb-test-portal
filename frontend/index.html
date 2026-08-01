@@ -214,12 +214,18 @@
       align-items: center;
       gap: 8px;
       cursor: pointer;
-      padding: 6px 12px;
+      padding: 8px 14px;
       border-radius: 12px;
-      transition: 0.1s;
+      transition: 0.15s;
+      border: 1px solid transparent;
     }
     .opt-item:hover {
       background: #f1f5f9;
+      border-color: #d1d9e6;
+    }
+    .opt-item.selected {
+      background: #dbeafe;
+      border-color: #3b5fbf;
     }
     .opt-item input[type="radio"] {
       width: 16px;
@@ -373,7 +379,7 @@
       font-size: 0.7rem;
       background: #0b5e42;
       color: white;
-      padding: 2px 10px;
+      padding: 2px 12px;
       border-radius: 30px;
       margin-left: 10px;
     }
@@ -382,9 +388,39 @@
       font-size: 0.7rem;
       background: #94a3b8;
       color: white;
-      padding: 2px 10px;
+      padding: 2px 12px;
       border-radius: 30px;
       margin-left: 10px;
+    }
+
+    .progress-dot {
+      display: inline-block;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      text-align: center;
+      line-height: 30px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: 0.1s;
+    }
+    .progress-dot:hover {
+      transform: scale(1.1);
+    }
+    .progress-dot.answered {
+      background: #0b5e42;
+      color: white;
+    }
+    .progress-dot.current {
+      background: #1e3a8a;
+      color: white;
+      border-color: #3b5fbf;
+    }
+    .progress-dot.unanswered {
+      background: #e2e8f0;
+      color: #64748b;
     }
 
     @media (max-width: 600px) {
@@ -393,6 +429,7 @@
       .admin-toggle { top: 12px; right: 14px; padding: 6px 14px; font-size: 0.8rem; }
       .brand-name { font-size: 1.2rem; }
       .brand-icon { font-size: 1.5rem; }
+      .opt-item { padding: 6px 10px; }
     }
   </style>
 </head>
@@ -845,6 +882,12 @@
       startTimer();
     }
 
+    // ==================== FIXED: ANSWER SELECTION ====================
+    function selectAnswer(qId, value) {
+      studentAnswers[qId] = value;
+      renderExam();
+    }
+
     function renderExam() {
       if (!studentArea || !activeChapter) return;
       const qs = activeChapter.questions;
@@ -852,7 +895,6 @@
       const total = qs.length;
       const progress = `${currentQIndex+1}/${total}`;
       
-      // Check if current question has been answered
       const isAnswered = studentAnswers[q.id] !== undefined && studentAnswers[q.id] !== null;
       const answerStatus = isAnswered ? '✅ Answered' : '⏳ Not answered';
       
@@ -871,72 +913,56 @@
           ${q.text}
           <span class="${isAnswered ? 'answered-badge' : 'unanswered-badge'}">${answerStatus}</span>
         </div>
-        <div class="options-grid">
-          ${q.options.map((opt, idx) => {
-            const val = String.fromCharCode(65+idx);
-            const checked = studentAnswers[q.id] === val ? 'checked' : '';
-            return `<label class="opt-item" style="${checked ? 'background:#dbeafe;' : ''}">
-              <input type="radio" name="q_${q.id}" value="${val}" ${checked} 
-                     onchange="saveAnswer('${q.id}', '${val}')" />
-              ${val}. ${opt}
-            </label>`;
-          }).join('')}
-        </div>
-      </div>`;
+        <div class="options-grid">`;
+      
+      // FIXED: Using onclick instead of onchange
+      q.options.forEach((opt, idx) => {
+        const val = String.fromCharCode(65+idx);
+        const checked = studentAnswers[q.id] === val;
+        const selectedClass = checked ? 'selected' : '';
+        html += `
+          <div class="opt-item ${selectedClass}" onclick="window.selectAnswer('${q.id}', '${val}')">
+            <input type="radio" name="q_${q.id}" value="${val}" ${checked ? 'checked' : ''} />
+            ${val}. ${opt}
+          </div>
+        `;
+      });
+      
+      html += `</div></div>`;
       
       // Navigation buttons
       html += `<div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:6px; align-items:center;">`;
       
-      // Previous button (always show if not on first question)
       html += `<button class="btn btn-outline" id="prevQBtn" ${currentQIndex===0?'disabled':''}>◀ Prev</button>`;
       
-      // Next button (show if not on last question)
       if (currentQIndex < total - 1) {
         html += `<button class="btn btn-outline" id="nextQBtn">Next ▶</button>`;
       }
       
-      // Submit button (ONLY on LAST question)
       if (currentQIndex === total - 1) {
         html += `<button class="btn btn-primary" id="submitExamBtn" style="background:#b91c1c; color:white;">✅ Submit Test</button>`;
       }
       
-      // Quit button (always show)
       html += `<button class="btn btn-outline" id="quitExamBtn">✖ Quit</button>`;
-      
       html += `</div>`;
       
-      // Question progress indicator
+      // Progress dots
       html += `<div style="margin-top:12px; display:flex; gap:6px; flex-wrap:wrap;">`;
       for (let i = 0; i < total; i++) {
         const qId = qs[i].id;
         const answered = studentAnswers[qId] !== undefined && studentAnswers[qId] !== null;
         const isCurrent = i === currentQIndex;
-        const bgColor = answered ? '#0b5e42' : (isCurrent ? '#1e3a8a' : '#e2e8f0');
-        const textColor = (answered || isCurrent) ? 'white' : '#64748b';
-        html += `<span style="display:inline-block; width:30px; height:30px; border-radius:50%; 
-                    background:${bgColor}; color:${textColor}; text-align:center; line-height:30px; 
-                    font-size:0.75rem; font-weight:600; cursor:pointer; 
-                    border:${isCurrent ? '2px solid #1e3a8a' : 'none'};"
-                    onclick="goToQuestion(${i})">${i+1}</span>`;
+        let dotClass = 'progress-dot';
+        if (answered) dotClass += ' answered';
+        else if (isCurrent) dotClass += ' current';
+        else dotClass += ' unanswered';
+        html += `<span class="${dotClass}" onclick="window.goToQuestion(${i})">${i+1}</span>`;
       }
       html += `</div>`;
       
       studentArea.innerHTML = html;
 
-      // ==================== EVENT HANDLERS ====================
-      
-      // Radio button change - auto-save answer
-      studentArea.querySelectorAll('input[type="radio"]').forEach(r => {
-        r.addEventListener('change', function() {
-          const name = this.name;
-          const qId = parseInt(name.split('_')[1]);
-          studentAnswers[qId] = this.value;
-          // Re-render to update status badges
-          renderExam();
-        });
-      });
-
-      // Previous button
+      // Event listeners for buttons
       $('prevQBtn')?.addEventListener('click', () => { 
         if (currentQIndex > 0) { 
           currentQIndex--; 
@@ -944,7 +970,6 @@
         } 
       });
       
-      // Next button
       $('nextQBtn')?.addEventListener('click', () => { 
         if (currentQIndex < total - 1) { 
           currentQIndex++; 
@@ -952,9 +977,7 @@
         } 
       });
       
-      // Submit button (only on last question)
       $('submitExamBtn')?.addEventListener('click', function() {
-        // Check if all questions are answered
         let unanswered = [];
         qs.forEach((q, idx) => {
           if (!studentAnswers[q.id] || studentAnswers[q.id] === null) {
@@ -970,7 +993,6 @@
         finishExam();
       });
       
-      // Quit button
       $('quitExamBtn')?.addEventListener('click', function() {
         if (confirm('Quit exam? Your progress will be lost.')) {
           clearInterval(timerInterval);
@@ -987,26 +1009,10 @@
     }
 
     // ==================== GLOBAL FUNCTIONS FOR ONCLICK ====================
-    window.saveAnswer = function(qId, value) {
+    window.selectAnswer = function(qId, value) {
       const id = parseInt(qId);
       studentAnswers[id] = value;
-      // Update the UI without full re-render
-      const currentQ = activeChapter?.questions[currentQIndex];
-      if (currentQ && currentQ.id === id) {
-        // Just update the badge and style
-        const qBlock = document.querySelector('.q-block');
-        if (qBlock) {
-          const badge = qBlock.querySelector('.answered-badge, .unanswered-badge');
-          if (badge) {
-            badge.className = 'answered-badge';
-            badge.textContent = '✅ Answered';
-            badge.style.backgroundColor = '#0b5e42';
-            badge.style.color = 'white';
-          }
-        }
-        // Update progress dots
-        renderExam();
-      }
+      renderExam();
     };
 
     window.goToQuestion = function(index) {
