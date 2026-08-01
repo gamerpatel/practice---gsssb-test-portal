@@ -212,40 +212,21 @@
     .opt-item {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
+      padding: 4px 8px;
+      border-radius: 8px;
+      transition: background 0.2s;
       cursor: pointer;
-      padding: 10px 16px;
-      border-radius: 12px;
-      transition: 0.15s;
-      border: 2px solid #e2e8f0;
-      background: white;
-      flex: 1 0 200px;
     }
     .opt-item:hover {
-      background: #f8faff;
-      border-color: #b9c8f0;
+      background: #f0f4fe;
     }
-    .opt-item.selected {
-      background: #dbeafe;
-      border-color: #3b5fbf;
-      box-shadow: 0 0 0 2px rgba(59, 95, 191, 0.2);
-    }
-    .opt-item input[type="radio"] {
-      width: 18px;
-      height: 18px;
+    .opt-item input[type="radio"] { 
+      width: 16px; 
+      height: 16px; 
       accent-color: #1e3a8a;
       cursor: pointer;
-      flex-shrink: 0;
     }
-    .opt-item .option-letter {
-      font-weight: 600;
-      color: #1e3a8a;
-      min-width: 24px;
-    }
-    .opt-item .option-text {
-      color: #1e293b;
-    }
-
     .test-meta {
       display: flex;
       flex-wrap: wrap;
@@ -376,54 +357,15 @@
       padding: 40px;
       color: #64748b;
     }
-
-    .answered-badge {
-      display: inline-block;
-      font-size: 0.7rem;
-      background: #0b5e42;
-      color: white;
-      padding: 2px 12px;
-      border-radius: 30px;
-      margin-left: 10px;
+    .loading::after {
+      content: '...';
+      animation: dots 1.5s steps(4, end) infinite;
     }
-    .unanswered-badge {
-      display: inline-block;
-      font-size: 0.7rem;
-      background: #94a3b8;
-      color: white;
-      padding: 2px 12px;
-      border-radius: 30px;
-      margin-left: 10px;
-    }
-
-    .progress-dot {
-      display: inline-block;
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
-      text-align: center;
-      line-height: 30px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      cursor: pointer;
-      border: 2px solid transparent;
-      transition: 0.1s;
-    }
-    .progress-dot:hover {
-      transform: scale(1.1);
-    }
-    .progress-dot.answered {
-      background: #0b5e42;
-      color: white;
-    }
-    .progress-dot.current {
-      background: #1e3a8a;
-      color: white;
-      border-color: #3b5fbf;
-    }
-    .progress-dot.unanswered {
-      background: #e2e8f0;
-      color: #64748b;
+    @keyframes dots {
+      0%, 20% { content: ''; }
+      40% { content: '.'; }
+      60% { content: '..'; }
+      80%, 100% { content: '...'; }
     }
 
     @media (max-width: 600px) {
@@ -432,7 +374,6 @@
       .admin-toggle { top: 12px; right: 14px; padding: 6px 14px; font-size: 0.8rem; }
       .brand-name { font-size: 1.2rem; }
       .brand-icon { font-size: 1.5rem; }
-      .opt-item { flex: 1 0 100%; }
     }
   </style>
 </head>
@@ -450,7 +391,7 @@
 
   <div id="studentPanel">
     <div id="studentArea">
-      <div class="loading">Loading tests...</div>
+      <div class="loading">Loading tests</div>
     </div>
   </div>
 
@@ -790,7 +731,7 @@
       chapterListContainer.querySelectorAll('.edit-chapter-btn').forEach(btn => {
         btn.addEventListener('click', function(e) {
           e.stopPropagation();
-          const id = parseInt(this.dataset.chid);
+          const id = this.dataset.chid;
           openEditor(id);
         });
       });
@@ -798,7 +739,7 @@
       chapterListContainer.querySelectorAll('.delete-chapter-btn').forEach(btn => {
         btn.addEventListener('click', async function(e) {
           e.stopPropagation();
-          const id = parseInt(this.dataset.chid);
+          const id = this.dataset.chid;
           if (confirm('Delete this chapter and all questions?')) {
             const success = await deleteChapter(id);
             if (success) {
@@ -814,7 +755,7 @@
       chapterListContainer.querySelectorAll('.chapter-card').forEach(card => {
         card.addEventListener('click', function(e) {
           if (e.target.closest('button')) return;
-          const id = parseInt(this.dataset.chid);
+          const id = this.dataset.chid;
           const ch = chapters.find(c => c.id === id);
           if (ch) showStartPopup(ch);
         });
@@ -843,7 +784,7 @@
       
       studentArea.querySelectorAll('.chapter-card').forEach(card => {
         card.addEventListener('click', function() {
-          const id = parseInt(this.dataset.chid);
+          const id = this.dataset.chid;
           const ch = chapters.find(c => c.id === id);
           if (ch) showStartPopup(ch);
         });
@@ -885,120 +826,80 @@
       startTimer();
     }
 
-    // ==================== FIXED: ANSWER SELECTION ====================
-    function selectAnswer(qId, value) {
-      studentAnswers[qId] = value;
-      // Re-render to update UI
-      renderExam();
-    }
-
     function renderExam() {
       if (!studentArea || !activeChapter) return;
       const qs = activeChapter.questions;
       const q = qs[currentQIndex];
       const total = qs.length;
       const progress = `${currentQIndex+1}/${total}`;
-      
-      const isAnswered = studentAnswers[q.id] !== undefined && studentAnswers[q.id] !== null;
-      const answerStatus = isAnswered ? '✅ Answered' : '⏳ Not answered';
-      
       let html = `<div class="test-meta">
         <span><strong>📖</strong> ${activeChapter.name}</span>
         <span><strong>⏱</strong> <span id="examTimer">${formatTime(remainingSeconds)}</span></span>
         <span><strong>Q</strong> ${progress}</span>
-        <span style="margin-left:auto;">
-          <span id="timerDisplay" style="font-weight:600;color:#1e3a8a;">${formatTime(remainingSeconds)}</span>
-          <span style="font-size:0.8rem; color:#94a3b8; margin-left:10px;">🔒 Copy/Screenshot disabled</span>
-        </span>
+        <span style="margin-left:auto;"><span id="timerDisplay" style="font-weight:600;color:#1e3a8a;">${formatTime(remainingSeconds)}</span></span>
+        <span style="font-size:0.8rem; color:#94a3b8; margin-left:10px;">🔒 Copy/Screenshot disabled</span>
       </div>`;
-      
       html += `<div class="q-block">
-        <div class="q-text">
-          ${q.text}
-          <span class="${isAnswered ? 'answered-badge' : 'unanswered-badge'}">${answerStatus}</span>
+        <div class="q-text">${q.text}</div>
+        <div class="options-grid" id="optionsContainer">
+          ${q.options.map((opt, idx) => {
+            const val = String.fromCharCode(65+idx);
+            const checked = studentAnswers[q.id] === val ? 'checked' : '';
+            return `<label class="opt-item" style="cursor:pointer; padding:4px 8px; border-radius:8px; transition:background 0.2s;">
+              <input type="radio" name="q_${q.id}" value="${val}" ${checked} style="accent-color: #1e3a8a; cursor:pointer;" />
+              ${val}. ${opt}
+            </label>`;
+          }).join('')}
         </div>
-        <div class="options-grid">`;
-      
-      q.options.forEach((opt, idx) => {
-        const val = String.fromCharCode(65+idx);
-        const isSelected = studentAnswers[q.id] === val;
-        const selectedClass = isSelected ? 'selected' : '';
-        
-        html += `
-          <div class="opt-item ${selectedClass}" onclick="window.selectAnswer('${q.id}', '${val}')">
-            <input type="radio" name="q_${q.id}" value="${val}" ${isSelected ? 'checked' : ''} />
-            <span class="option-letter">${val}.</span>
-            <span class="option-text">${opt}</span>
-          </div>
-        `;
-      });
-      
-      html += `</div></div>`;
-      
-      // Navigation buttons
-      html += `<div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:6px; align-items:center;">`;
-      
-      html += `<button class="btn btn-outline" id="prevQBtn" ${currentQIndex===0?'disabled':''}>◀ Prev</button>`;
-      
-      if (currentQIndex < total - 1) {
-        html += `<button class="btn btn-outline" id="nextQBtn">Next ▶</button>`;
-      }
-      
-      if (currentQIndex === total - 1) {
-        html += `<button class="btn btn-primary" id="submitExamBtn" style="background:#b91c1c; color:white; font-weight:600;">✅ Submit Test</button>`;
-      }
-      
-      html += `<button class="btn btn-outline" id="quitExamBtn">✖ Quit</button>`;
-      html += `</div>`;
-      
-      // Progress dots
-      html += `<div style="margin-top:12px; display:flex; gap:6px; flex-wrap:wrap;">`;
-      for (let i = 0; i < total; i++) {
-        const qId = qs[i].id;
-        const answered = studentAnswers[qId] !== undefined && studentAnswers[qId] !== null;
-        const isCurrent = i === currentQIndex;
-        let dotClass = 'progress-dot';
-        if (answered) dotClass += ' answered';
-        else if (isCurrent) dotClass += ' current';
-        else dotClass += ' unanswered';
-        html += `<span class="${dotClass}" onclick="window.goToQuestion(${i})">${i+1}</span>`;
-      }
-      html += `</div>`;
-      
+      </div>`;
+      html += `<div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:6px;">
+        <button class="btn btn-outline" id="prevQBtn" ${currentQIndex===0?'disabled':''}>◀ Prev</button>
+        <button class="btn btn-outline" id="nextQBtn" ${currentQIndex===total-1?'disabled':''}>Next ▶</button>
+        <button class="btn btn-primary" id="submitExamBtn">✅ Submit</button>
+        <button class="btn btn-outline" id="quitExamBtn">✖ Quit</button>
+      </div>`;
       studentArea.innerHTML = html;
 
-      // Event listeners for buttons
-      document.getElementById('prevQBtn')?.addEventListener('click', () => { 
+      // Use event delegation for radio buttons
+      const optionsContainer = document.getElementById('optionsContainer');
+      if (optionsContainer) {
+        optionsContainer.addEventListener('change', function(e) {
+          if (e.target && e.target.type === 'radio') {
+            const name = e.target.name;
+            const qId = name.split('_')[1]; // Keep as string, don't use parseInt
+            studentAnswers[qId] = e.target.value;
+            
+            // Update visual feedback for selected option
+            const labels = this.querySelectorAll('.opt-item');
+            labels.forEach(label => {
+              label.style.background = 'transparent';
+            });
+            e.target.closest('.opt-item').style.background = '#e8edf5';
+          }
+        });
+        
+        // Highlight currently selected option on load
+        const checkedRadio = optionsContainer.querySelector('input[type="radio"]:checked');
+        if (checkedRadio) {
+          checkedRadio.closest('.opt-item').style.background = '#e8edf5';
+        }
+      }
+
+      // Navigation buttons
+      $('prevQBtn')?.addEventListener('click', () => { 
         if (currentQIndex > 0) { 
           currentQIndex--; 
           renderExam(); 
         } 
       });
-      
-      document.getElementById('nextQBtn')?.addEventListener('click', () => { 
-        if (currentQIndex < total - 1) { 
+      $('nextQBtn')?.addEventListener('click', () => { 
+        if (currentQIndex < total-1) { 
           currentQIndex++; 
           renderExam(); 
         } 
       });
-      
-      document.getElementById('submitExamBtn')?.addEventListener('click', function() {
-        let unanswered = [];
-        qs.forEach((q, idx) => {
-          if (!studentAnswers[q.id] || studentAnswers[q.id] === null) {
-            unanswered.push(idx + 1);
-          }
-        });
-        
-        if (unanswered.length > 0) {
-          if (!confirm(`⚠️ You haven't answered questions: ${unanswered.join(', ')}. Still submit?`)) {
-            return;
-          }
-        }
-        finishExam();
-      });
-      
-      document.getElementById('quitExamBtn')?.addEventListener('click', function() {
+      $('submitExamBtn')?.addEventListener('click', finishExam);
+      $('quitExamBtn')?.addEventListener('click', function() {
         if (confirm('Quit exam? Your progress will be lost.')) {
           clearInterval(timerInterval);
           examActive = false;
@@ -1008,24 +909,9 @@
           renderStudentChapters();
         }
       });
-      
       const timerSpan = document.getElementById('examTimer');
       if (timerSpan) timerSpan.textContent = formatTime(remainingSeconds);
     }
-
-    // ==================== GLOBAL FUNCTIONS FOR ONCLICK ====================
-    window.selectAnswer = function(qId, value) {
-      const id = parseInt(qId);
-      studentAnswers[id] = value;
-      renderExam();
-    };
-
-    window.goToQuestion = function(index) {
-      if (index >= 0 && index < activeChapter?.questions?.length) {
-        currentQIndex = index;
-        renderExam();
-      }
-    };
 
     function startTimer() {
       if (timerInterval) clearInterval(timerInterval);
@@ -1051,8 +937,9 @@
       const qs = activeChapter.questions;
       let correct = 0, wrong = 0, unattempted = 0;
       
+      // ========== FIXED SCORING LOGIC ==========
       qs.forEach(q => {
-        const ans = studentAnswers[q.id];
+        const ans = studentAnswers[q.id]; // Use q.id directly as string
         if (!ans) {
           unattempted++;
         } else if (ans === q.correct) {
@@ -1067,6 +954,7 @@
       const totalMarks = correct;
       const finalScore = Math.max(0, totalMarks - negativeMarks);
 
+      // Show results (NO HISTORY SAVING)
       let html = `<h3>📊 Results · ${activeChapter.name}</h3>
         <div class="result-box">
           <div>
@@ -1104,13 +992,13 @@
         <div id="reviewDetail" style="display:none; margin-top:12px;"></div>`;
       studentArea.innerHTML = html;
 
-      document.getElementById('reviewAnswersBtn')?.addEventListener('click', function() {
-        const detail = document.getElementById('reviewDetail');
+      $('reviewAnswersBtn')?.addEventListener('click', function() {
+        const detail = $('reviewDetail');
         if (!detail) return;
         if (detail.style.display === 'block') { detail.style.display = 'none'; return; }
         let rHtml = '';
         qs.forEach((q, idx) => {
-          const ans = studentAnswers[q.id] || '(none)';
+          const ans = studentAnswers[q.id] || '(none)'; // Use q.id as string
           const isCorrect = ans === q.correct;
           let mark = '0';
           let markColor = '#64748b';
@@ -1135,7 +1023,7 @@
         detail.style.display = 'block';
       });
 
-      document.getElementById('backToChaptersBtn')?.addEventListener('click', function() {
+      $('backToChaptersBtn')?.addEventListener('click', function() {
         activeChapter = null;
         studentAnswers = {};
         renderStudentChapters();
@@ -1155,7 +1043,7 @@
       if (!ch) return;
       selectedChapterId = chapterId;
       questionEditor.style.display = 'block';
-      document.getElementById('editChapterName').textContent = ch.name;
+      $('editChapterName').textContent = ch.name;
       renderQuestionsForChapter(ch);
       adminPanel.classList.add('active');
     }
@@ -1178,7 +1066,7 @@
       container.innerHTML = html;
       container.querySelectorAll('.remove-q-btn').forEach(btn => {
         btn.addEventListener('click', async function() {
-          const qid = parseInt(this.dataset.qid);
+          const qid = this.dataset.qid;
           const ch2 = chapters.find(c => c.id === selectedChapterId);
           if (ch2 && ch2.questions) {
             ch2.questions = ch2.questions.filter(q => q.id !== qid);
@@ -1204,15 +1092,15 @@
 
     function showLoginModal() {
       loginModal.classList.add('active');
-      document.getElementById('loginError').textContent = '';
-      document.getElementById('loginUser').value = '';
-      document.getElementById('loginPass').value = '';
-      document.getElementById('loginUser').focus();
+      $('loginError').textContent = '';
+      $('loginUser').value = '';
+      $('loginPass').value = '';
+      $('loginUser').focus();
     }
 
     async function handleLogin() {
-      const user = document.getElementById('loginUser').value.trim();
-      const pass = document.getElementById('loginPass').value.trim();
+      const user = $('loginUser').value.trim();
+      const pass = $('loginPass').value.trim();
       const result = await adminLogin(user, pass);
       if (result && result.success) {
         adminLoggedIn = true;
@@ -1221,9 +1109,9 @@
         adminToggle.classList.add('logged-in');
         adminPanel.classList.add('active');
         renderChapterList();
-        document.getElementById('loginError').textContent = '';
+        $('loginError').textContent = '';
       } else {
-        document.getElementById('loginError').textContent = '❌ Invalid credentials';
+        $('loginError').textContent = '❌ Invalid credentials';
       }
     }
 
@@ -1238,9 +1126,9 @@
 
     async function addChapter() {
       if (!adminLoggedIn) { alert('Login as admin first.'); return; }
-      const name = document.getElementById('chapterNameInput').value.trim();
+      const name = $('chapterNameInput').value.trim();
       if (!name) { alert('Enter chapter name.'); return; }
-      const dur = parseInt(document.getElementById('chapterDuration').value) || 10;
+      const dur = parseInt($('chapterDuration').value) || 10;
       
       const chapterData = { name, durationMin: dur, questions: [] };
       const saved = await saveChapter(chapterData);
@@ -1248,8 +1136,8 @@
         chapters.push(saved);
         renderChapterList();
         renderStudentChapters();
-        document.getElementById('chapterNameInput').value = '';
-        document.getElementById('chapterDuration').value = '10';
+        $('chapterNameInput').value = '';
+        $('chapterDuration').value = '10';
       }
     }
 
@@ -1258,19 +1146,19 @@
       if (selectedChapterId === null) { alert('Open a chapter first.'); return; }
       const ch = chapters.find(c => c.id === selectedChapterId);
       if (!ch) return;
-      const text = document.getElementById('qText').value.trim();
+      const text = $('qText').value.trim();
       if (!text) { alert('Enter question text.'); return; }
       const opts = [
-        document.getElementById('optA').value.trim() || 'A',
-        document.getElementById('optB').value.trim() || 'B',
-        document.getElementById('optC').value.trim() || 'C',
-        document.getElementById('optD').value.trim() || 'D'
+        $('optA').value.trim() || 'A',
+        $('optB').value.trim() || 'B',
+        $('optC').value.trim() || 'C',
+        $('optD').value.trim() || 'D'
       ];
-      const correct = document.getElementById('correctOpt').value;
+      const correct = $('correctOpt').value;
       
       if (!ch.questions) ch.questions = [];
       const newQ = { 
-        id: Date.now() + Math.random(), 
+        id: Date.now() + Math.random() + '', // Convert to string
         text, 
         options: opts, 
         correct 
@@ -1286,11 +1174,8 @@
         const index = chapters.findIndex(c => c.id === ch.id);
         if (index !== -1) chapters[index] = updated;
         renderQuestionsForChapter(ch);
-        document.getElementById('qText').value = '';
-        document.getElementById('optA').value = '';
-        document.getElementById('optB').value = '';
-        document.getElementById('optC').value = '';
-        document.getElementById('optD').value = '';
+        $('qText').value = '';
+        $('optA').value = ''; $('optB').value = ''; $('optC').value = ''; $('optD').value = '';
       }
     }
 
@@ -1350,7 +1235,7 @@
       let count = 0;
       for (const d of demo) {
         const qs = d.qs.map(q => ({
-          id: Date.now() + Math.random() + count,
+          id: Date.now() + Math.random() + count + '', // Convert to string
           text: q.text,
           options: q.opts,
           correct: q.correct
@@ -1380,41 +1265,41 @@
         }
       });
 
-      document.getElementById('loginBtn').addEventListener('click', handleLogin);
-      document.getElementById('loginUser').addEventListener('keydown', (e) => { if (e.key === 'Enter') handleLogin(); });
-      document.getElementById('loginPass').addEventListener('keydown', (e) => { if (e.key === 'Enter') handleLogin(); });
+      $('loginBtn').addEventListener('click', handleLogin);
+      $('loginUser').addEventListener('keydown', (e) => { if (e.key === 'Enter') handleLogin(); });
+      $('loginPass').addEventListener('keydown', (e) => { if (e.key === 'Enter') handleLogin(); });
       loginModal.addEventListener('click', function(e) {
         if (e.target === this) this.classList.remove('active');
       });
 
-      document.getElementById('closeAdminBtn').addEventListener('click', function() {
+      $('closeAdminBtn').addEventListener('click', function() {
         if (adminLoggedIn) logoutAdmin();
       });
-      document.getElementById('refreshDataBtn').addEventListener('click', async function() {
+      $('refreshDataBtn').addEventListener('click', async function() {
         await loadChapters();
         alert('Data refreshed!');
       });
 
-      document.getElementById('addChapterBtn').addEventListener('click', addChapter);
-      document.getElementById('chapterNameInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') addChapter(); });
+      $('addChapterBtn').addEventListener('click', addChapter);
+      $('chapterNameInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') addChapter(); });
 
-      document.getElementById('addQuestionBtn').addEventListener('click', addQuestionToChapter);
-      document.getElementById('clearChapterQsBtn').addEventListener('click', clearChapterQuestions);
-      document.getElementById('saveChapterBtn').addEventListener('click', saveChapterHandler);
-      document.getElementById('closeEditorBtn').addEventListener('click', closeEditor);
+      $('addQuestionBtn').addEventListener('click', addQuestionToChapter);
+      $('clearChapterQsBtn').addEventListener('click', clearChapterQuestions);
+      $('saveChapterBtn').addEventListener('click', saveChapterHandler);
+      $('closeEditorBtn').addEventListener('click', closeEditor);
 
-      document.getElementById('loadDemoChaptersBtn').addEventListener('click', loadDemoChapters);
+      $('loadDemoChaptersBtn').addEventListener('click', loadDemoChapters);
 
-      document.getElementById('popupStartBtn').addEventListener('click', function() {
-        const popup = document.getElementById('startExamPopup');
-        const chid = parseInt(popup.dataset.chid);
+      $('popupStartBtn').addEventListener('click', function() {
+        const popup = $('startExamPopup');
+        const chid = popup.dataset.chid;
         popup.classList.remove('active');
         startExam(chid);
       });
-      document.getElementById('popupCancelBtn').addEventListener('click', function() {
-        document.getElementById('startExamPopup').classList.remove('active');
+      $('popupCancelBtn').addEventListener('click', function() {
+        $('startExamPopup').classList.remove('active');
       });
-      document.getElementById('startExamPopup').addEventListener('click', function(e) {
+      $('startExamPopup').addEventListener('click', function(e) {
         if (e.target === this) this.classList.remove('active');
       });
 
