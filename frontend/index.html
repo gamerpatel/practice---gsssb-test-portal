@@ -213,8 +213,20 @@
       display: flex;
       align-items: center;
       gap: 8px;
+      cursor: pointer;
+      padding: 6px 12px;
+      border-radius: 12px;
+      transition: 0.1s;
     }
-    .opt-item input[type="radio"] { width: 16px; height: 16px; accent-color: #1e3a8a; }
+    .opt-item:hover {
+      background: #f1f5f9;
+    }
+    .opt-item input[type="radio"] {
+      width: 16px;
+      height: 16px;
+      accent-color: #1e3a8a;
+      cursor: pointer;
+    }
     .test-meta {
       display: flex;
       flex-wrap: wrap;
@@ -354,6 +366,25 @@
       40% { content: '.'; }
       60% { content: '..'; }
       80%, 100% { content: '...'; }
+    }
+
+    .answered-badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      background: #0b5e42;
+      color: white;
+      padding: 2px 10px;
+      border-radius: 30px;
+      margin-left: 10px;
+    }
+    .unanswered-badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      background: #94a3b8;
+      color: white;
+      padding: 2px 10px;
+      border-radius: 30px;
+      margin-left: 10px;
     }
 
     @media (max-width: 600px) {
@@ -820,42 +851,126 @@
       const q = qs[currentQIndex];
       const total = qs.length;
       const progress = `${currentQIndex+1}/${total}`;
+      
+      // Check if current question has been answered
+      const isAnswered = studentAnswers[q.id] !== undefined && studentAnswers[q.id] !== null;
+      const answerStatus = isAnswered ? '✅ Answered' : '⏳ Not answered';
+      
       let html = `<div class="test-meta">
         <span><strong>📖</strong> ${activeChapter.name}</span>
         <span><strong>⏱</strong> <span id="examTimer">${formatTime(remainingSeconds)}</span></span>
         <span><strong>Q</strong> ${progress}</span>
-        <span style="margin-left:auto;"><span id="timerDisplay" style="font-weight:600;color:#1e3a8a;">${formatTime(remainingSeconds)}</span></span>
-        <span style="font-size:0.8rem; color:#94a3b8; margin-left:10px;">🔒 Copy/Screenshot disabled</span>
+        <span style="margin-left:auto;">
+          <span id="timerDisplay" style="font-weight:600;color:#1e3a8a;">${formatTime(remainingSeconds)}</span>
+          <span style="font-size:0.8rem; color:#94a3b8; margin-left:10px;">🔒 Copy/Screenshot disabled</span>
+        </span>
       </div>`;
+      
       html += `<div class="q-block">
-        <div class="q-text">${q.text}</div>
+        <div class="q-text">
+          ${q.text}
+          <span class="${isAnswered ? 'answered-badge' : 'unanswered-badge'}">${answerStatus}</span>
+        </div>
         <div class="options-grid">
           ${q.options.map((opt, idx) => {
             const val = String.fromCharCode(65+idx);
             const checked = studentAnswers[q.id] === val ? 'checked' : '';
-            return `<label class="opt-item"><input type="radio" name="q_${q.id}" value="${val}" ${checked} /> ${val}. ${opt}</label>`;
+            return `<label class="opt-item" style="${checked ? 'background:#dbeafe;' : ''}">
+              <input type="radio" name="q_${q.id}" value="${val}" ${checked} 
+                     onchange="saveAnswer('${q.id}', '${val}')" />
+              ${val}. ${opt}
+            </label>`;
           }).join('')}
         </div>
       </div>`;
-      html += `<div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:6px;">
-        <button class="btn btn-outline" id="prevQBtn" ${currentQIndex===0?'disabled':''}>◀ Prev</button>
-        <button class="btn btn-outline" id="nextQBtn" ${currentQIndex===total-1?'disabled':''}>Next ▶</button>
-        <button class="btn btn-primary" id="submitExamBtn">✅ Submit</button>
-        <button class="btn btn-outline" id="quitExamBtn">✖ Quit</button>
-      </div>`;
+      
+      // Navigation buttons
+      html += `<div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:6px; align-items:center;">`;
+      
+      // Previous button (always show if not on first question)
+      html += `<button class="btn btn-outline" id="prevQBtn" ${currentQIndex===0?'disabled':''}>◀ Prev</button>`;
+      
+      // Next button (show if not on last question)
+      if (currentQIndex < total - 1) {
+        html += `<button class="btn btn-outline" id="nextQBtn">Next ▶</button>`;
+      }
+      
+      // Submit button (ONLY on LAST question)
+      if (currentQIndex === total - 1) {
+        html += `<button class="btn btn-primary" id="submitExamBtn" style="background:#b91c1c; color:white;">✅ Submit Test</button>`;
+      }
+      
+      // Quit button (always show)
+      html += `<button class="btn btn-outline" id="quitExamBtn">✖ Quit</button>`;
+      
+      html += `</div>`;
+      
+      // Question progress indicator
+      html += `<div style="margin-top:12px; display:flex; gap:6px; flex-wrap:wrap;">`;
+      for (let i = 0; i < total; i++) {
+        const qId = qs[i].id;
+        const answered = studentAnswers[qId] !== undefined && studentAnswers[qId] !== null;
+        const isCurrent = i === currentQIndex;
+        const bgColor = answered ? '#0b5e42' : (isCurrent ? '#1e3a8a' : '#e2e8f0');
+        const textColor = (answered || isCurrent) ? 'white' : '#64748b';
+        html += `<span style="display:inline-block; width:30px; height:30px; border-radius:50%; 
+                    background:${bgColor}; color:${textColor}; text-align:center; line-height:30px; 
+                    font-size:0.75rem; font-weight:600; cursor:pointer; 
+                    border:${isCurrent ? '2px solid #1e3a8a' : 'none'};"
+                    onclick="goToQuestion(${i})">${i+1}</span>`;
+      }
+      html += `</div>`;
+      
       studentArea.innerHTML = html;
 
+      // ==================== EVENT HANDLERS ====================
+      
+      // Radio button change - auto-save answer
       studentArea.querySelectorAll('input[type="radio"]').forEach(r => {
         r.addEventListener('change', function() {
           const name = this.name;
           const qId = parseInt(name.split('_')[1]);
           studentAnswers[qId] = this.value;
+          // Re-render to update status badges
+          renderExam();
         });
       });
 
-      $('prevQBtn')?.addEventListener('click', () => { if (currentQIndex > 0) { currentQIndex--; renderExam(); } });
-      $('nextQBtn')?.addEventListener('click', () => { if (currentQIndex < total-1) { currentQIndex++; renderExam(); } });
-      $('submitExamBtn')?.addEventListener('click', finishExam);
+      // Previous button
+      $('prevQBtn')?.addEventListener('click', () => { 
+        if (currentQIndex > 0) { 
+          currentQIndex--; 
+          renderExam(); 
+        } 
+      });
+      
+      // Next button
+      $('nextQBtn')?.addEventListener('click', () => { 
+        if (currentQIndex < total - 1) { 
+          currentQIndex++; 
+          renderExam(); 
+        } 
+      });
+      
+      // Submit button (only on last question)
+      $('submitExamBtn')?.addEventListener('click', function() {
+        // Check if all questions are answered
+        let unanswered = [];
+        qs.forEach((q, idx) => {
+          if (!studentAnswers[q.id] || studentAnswers[q.id] === null) {
+            unanswered.push(idx + 1);
+          }
+        });
+        
+        if (unanswered.length > 0) {
+          if (!confirm(`⚠️ You haven't answered questions: ${unanswered.join(', ')}. Still submit?`)) {
+            return;
+          }
+        }
+        finishExam();
+      });
+      
+      // Quit button
       $('quitExamBtn')?.addEventListener('click', function() {
         if (confirm('Quit exam? Your progress will be lost.')) {
           clearInterval(timerInterval);
@@ -866,9 +981,40 @@
           renderStudentChapters();
         }
       });
+      
       const timerSpan = document.getElementById('examTimer');
       if (timerSpan) timerSpan.textContent = formatTime(remainingSeconds);
     }
+
+    // ==================== GLOBAL FUNCTIONS FOR ONCLICK ====================
+    window.saveAnswer = function(qId, value) {
+      const id = parseInt(qId);
+      studentAnswers[id] = value;
+      // Update the UI without full re-render
+      const currentQ = activeChapter?.questions[currentQIndex];
+      if (currentQ && currentQ.id === id) {
+        // Just update the badge and style
+        const qBlock = document.querySelector('.q-block');
+        if (qBlock) {
+          const badge = qBlock.querySelector('.answered-badge, .unanswered-badge');
+          if (badge) {
+            badge.className = 'answered-badge';
+            badge.textContent = '✅ Answered';
+            badge.style.backgroundColor = '#0b5e42';
+            badge.style.color = 'white';
+          }
+        }
+        // Update progress dots
+        renderExam();
+      }
+    };
+
+    window.goToQuestion = function(index) {
+      if (index >= 0 && index < activeChapter?.questions?.length) {
+        currentQIndex = index;
+        renderExam();
+      }
+    };
 
     function startTimer() {
       if (timerInterval) clearInterval(timerInterval);
@@ -894,11 +1040,9 @@
       const qs = activeChapter.questions;
       let correct = 0, wrong = 0, unattempted = 0;
       
-      // ========== FIXED SCORING LOGIC ==========
       qs.forEach(q => {
         const ans = studentAnswers[q.id];
         if (!ans) {
-          // Unattempted - no marks, no negative
           unattempted++;
         } else if (ans === q.correct) {
           correct++;
@@ -912,7 +1056,6 @@
       const totalMarks = correct;
       const finalScore = Math.max(0, totalMarks - negativeMarks);
 
-      // Show results (NO HISTORY SAVING)
       let html = `<h3>📊 Results · ${activeChapter.name}</h3>
         <div class="result-box">
           <div>
