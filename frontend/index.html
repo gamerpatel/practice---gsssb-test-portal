@@ -368,12 +368,30 @@
       80%, 100% { content: '...'; }
     }
 
+    /* Submit button container */
+    .exam-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+      padding: 16px;
+      background: #f8faff;
+      border-radius: 20px;
+      border: 1px solid #dee5ed;
+    }
+    .exam-actions .btn {
+      flex: 1;
+      min-width: 120px;
+      justify-content: center;
+    }
+
     @media (max-width: 600px) {
       .app { padding: 16px; }
       .flex-row { flex-direction: column; align-items: stretch; }
       .admin-toggle { top: 12px; right: 14px; padding: 6px 14px; font-size: 0.8rem; }
       .brand-name { font-size: 1.2rem; }
       .brand-icon { font-size: 1.5rem; }
+      .exam-actions .btn { min-width: 100%; }
     }
   </style>
 </head>
@@ -826,7 +844,7 @@
       startTimer();
     }
 
-    // ========== FIXED renderExam() FUNCTION ==========
+    // ========== FIXED renderExam() WITH SUBMIT BUTTON ==========
     function renderExam() {
       if (!studentArea || !activeChapter) return;
       const qs = activeChapter.questions;
@@ -853,12 +871,15 @@
           }).join('')}
         </div>
       </div>`;
-      html += `<div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:6px;">
+      
+      // Navigation and Submit buttons in a nice container
+      html += `<div class="exam-actions">
         <button class="btn btn-outline" id="prevQBtn" ${currentQIndex===0?'disabled':''}>◀ Prev</button>
         <button class="btn btn-outline" id="nextQBtn" ${currentQIndex===total-1?'disabled':''}>Next ▶</button>
-        <button class="btn btn-success" id="submitExamBtn" style="font-size:1.05rem; padding:12px 30px;">✅ Submit Exam</button>
-        <button class="btn btn-outline" id="quitExamBtn">✖ Quit</button>
+        <button class="btn btn-success" id="submitExamBtn" style="font-size:1.1rem; padding:12px 30px; flex:2;">✅ Submit Exam</button>
+        <button class="btn btn-danger" id="quitExamBtn">✖ Quit</button>
       </div>`;
+      
       studentArea.innerHTML = html;
 
       // FIXED: Use event delegation for radio buttons
