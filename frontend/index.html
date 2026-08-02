@@ -731,7 +731,7 @@
       chapterListContainer.querySelectorAll('.edit-chapter-btn').forEach(btn => {
         btn.addEventListener('click', function(e) {
           e.stopPropagation();
-          const id = this.dataset.chid;
+          const id = parseInt(this.dataset.chid);
           openEditor(id);
         });
       });
@@ -739,7 +739,7 @@
       chapterListContainer.querySelectorAll('.delete-chapter-btn').forEach(btn => {
         btn.addEventListener('click', async function(e) {
           e.stopPropagation();
-          const id = this.dataset.chid;
+          const id = parseInt(this.dataset.chid);
           if (confirm('Delete this chapter and all questions?')) {
             const success = await deleteChapter(id);
             if (success) {
@@ -755,7 +755,7 @@
       chapterListContainer.querySelectorAll('.chapter-card').forEach(card => {
         card.addEventListener('click', function(e) {
           if (e.target.closest('button')) return;
-          const id = this.dataset.chid;
+          const id = parseInt(this.dataset.chid);
           const ch = chapters.find(c => c.id === id);
           if (ch) showStartPopup(ch);
         });
@@ -784,7 +784,7 @@
       
       studentArea.querySelectorAll('.chapter-card').forEach(card => {
         card.addEventListener('click', function() {
-          const id = this.dataset.chid;
+          const id = parseInt(this.dataset.chid);
           const ch = chapters.find(c => c.id === id);
           if (ch) showStartPopup(ch);
         });
@@ -826,6 +826,7 @@
       startTimer();
     }
 
+    // ========== FIXED renderExam() FUNCTION ==========
     function renderExam() {
       if (!studentArea || !activeChapter) return;
       const qs = activeChapter.questions;
@@ -860,13 +861,13 @@
       </div>`;
       studentArea.innerHTML = html;
 
-      // Fix: Use event delegation on the container for radio buttons
+      // FIXED: Use event delegation for radio buttons
       const optionsContainer = document.getElementById('optionsContainer');
       if (optionsContainer) {
         optionsContainer.addEventListener('change', function(e) {
           if (e.target && e.target.type === 'radio') {
             const name = e.target.name;
-            const qId = name.split('_')[1]; // Keep as string, don't use parseInt
+            const qId = parseInt(name.split('_')[1]); // Keep parseInt for number IDs
             studentAnswers[qId] = e.target.value;
             
             // Visual feedback - highlight selected option
@@ -927,7 +928,7 @@
       let correct = 0, wrong = 0, unattempted = 0;
       
       qs.forEach(q => {
-        const ans = studentAnswers[q.id]; // Use q.id directly, no parseInt
+        const ans = studentAnswers[q.id];
         if (!ans) {
           unattempted++;
         } else if (ans === q.correct) {
@@ -1053,7 +1054,7 @@
       container.innerHTML = html;
       container.querySelectorAll('.remove-q-btn').forEach(btn => {
         btn.addEventListener('click', async function() {
-          const qid = this.dataset.qid;
+          const qid = parseInt(this.dataset.qid);
           const ch2 = chapters.find(c => c.id === selectedChapterId);
           if (ch2 && ch2.questions) {
             ch2.questions = ch2.questions.filter(q => q.id !== qid);
@@ -1145,7 +1146,7 @@
       
       if (!ch.questions) ch.questions = [];
       const newQ = { 
-        id: Date.now() + Math.random() + '', // Convert to string
+        id: Date.now() + Math.random(), 
         text, 
         options: opts, 
         correct 
@@ -1222,7 +1223,7 @@
       let count = 0;
       for (const d of demo) {
         const qs = d.qs.map(q => ({
-          id: Date.now() + Math.random() + count + '', // Convert to string
+          id: Date.now() + Math.random() + count,
           text: q.text,
           options: q.opts,
           correct: q.correct
@@ -1279,7 +1280,7 @@
 
       $('popupStartBtn').addEventListener('click', function() {
         const popup = $('startExamPopup');
-        const chid = popup.dataset.chid;
+        const chid = parseInt(popup.dataset.chid);
         popup.classList.remove('active');
         startExam(chid);
       });
