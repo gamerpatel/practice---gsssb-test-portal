@@ -864,10 +864,14 @@
       // FIXED: Use event delegation for radio buttons
       const optionsContainer = document.getElementById('optionsContainer');
       if (optionsContainer) {
-        optionsContainer.addEventListener('change', function(e) {
+        // Remove any existing listeners to prevent duplicates
+        const newContainer = optionsContainer.cloneNode(true);
+        optionsContainer.parentNode.replaceChild(newContainer, optionsContainer);
+        
+        newContainer.addEventListener('change', function(e) {
           if (e.target && e.target.type === 'radio') {
             const name = e.target.name;
-            const qId = parseInt(name.split('_')[1]); // Keep parseInt for number IDs
+            const qId = parseFloat(name.split('_')[1]); // Use parseFloat for decimal IDs
             studentAnswers[qId] = e.target.value;
             
             // Visual feedback - highlight selected option
@@ -880,7 +884,7 @@
         });
         
         // Highlight currently selected option on load
-        const checkedRadio = optionsContainer.querySelector('input[type="radio"]:checked');
+        const checkedRadio = newContainer.querySelector('input[type="radio"]:checked');
         if (checkedRadio) {
           checkedRadio.closest('.opt-item').style.background = '#e8edf5';
         }
