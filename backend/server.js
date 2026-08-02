@@ -59,7 +59,7 @@ db.serialize(() => {
   // Insert default admin if not exists
   db.get(`SELECT * FROM admins WHERE username = 'admin1000'`, (err, row) => {
     if (!row) {
-      db.run(`INSERT INTO admins (username, password) VALUES (?, ?)`, ['admin1000', '12345']);
+      db.run(`INSERT INTO admins (username, password) VALUES (?, ?)`, ['gsssb', 'test1234']);
       console.log('✅ Default admin created');
     }
   });
