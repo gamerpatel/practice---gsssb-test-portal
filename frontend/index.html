@@ -856,7 +856,7 @@
       html += `<div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:6px;">
         <button class="btn btn-outline" id="prevQBtn" ${currentQIndex===0?'disabled':''}>◀ Prev</button>
         <button class="btn btn-outline" id="nextQBtn" ${currentQIndex===total-1?'disabled':''}>Next ▶</button>
-        <button class="btn btn-primary" id="submitExamBtn">✅ Submit</button>
+        <button class="btn btn-success" id="submitExamBtn" style="font-size:1.05rem; padding:12px 30px;">✅ Submit Exam</button>
         <button class="btn btn-outline" id="quitExamBtn">✖ Quit</button>
       </div>`;
       studentArea.innerHTML = html;
